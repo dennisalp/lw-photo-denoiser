@@ -1,2 +1,2 @@
 # lw-photo-denoiser
-Lightweight autoencoder photo denoiser implemented using TensorFlow
+Lightweight autoencoder for photo denoising implemented using TensorFlow
