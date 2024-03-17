@@ -2,6 +2,7 @@ import sys
 import os
 from pdb import set_trace as st
 from glob import glob
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,10 +20,10 @@ from tensorflow.keras.models import Model
 # Parameters
 hh = 4000
 ww = 6000
-nn = 64
+nn = 128
 nc = 3
 nb = 2**8
-ne = 1
+ne = 10
 
 nh = hh//nn+1
 nw = ww//nn+1
@@ -42,9 +43,13 @@ class Autoencoder(Model):
     self.encoder = tf.keras.Sequential([
       layers.Input(shape=(nn, nn, 1)),
       layers.Conv2D(32, (ks, ks), activation='relu', padding='valid', strides=2),
+      layers.Conv2D(64, (ks, ks), activation='relu', padding='valid', strides=2),
+      layers.Conv2D(128, (ks, ks), activation='relu', padding='valid', strides=2),
       layers.Conv2D(64, (ks, ks), activation='relu', padding='valid', strides=2)])
 
     self.decoder = tf.keras.Sequential([
+      layers.Conv2DTranspose(64, kernel_size=ks, strides=2, activation='relu', padding='valid'),
+      layers.Conv2DTranspose(128, kernel_size=ks, strides=2, activation='relu', padding='valid'),
       layers.Conv2DTranspose(64, kernel_size=ks, strides=2, activation='relu', padding='valid'),
       layers.Conv2DTranspose(32, kernel_size=ks, strides=2, activation='relu', padding='valid'),
       layers.Conv2D(1, kernel_size=(1, 1), strides=1, activation='sigmoid', padding='same')])
@@ -77,7 +82,7 @@ def reassemble_images(slices):
 
 def read_imgs():
     print('\n\n\nreading images')
-    files = sorted(glob('dat/*.jpg'))[:2]
+    files = sorted(glob('dat/*.jpg'))[:]
     nf = len(files)
     exif = []
     icc = []
@@ -103,12 +108,13 @@ def read_imgs():
     
 def train(tiles):
     ae.fit(tiles, tiles, epochs=ne, shuffle=True)
+    ae.save(datetime.today().strftime('mod/%Y-%m-%d-%H.%M.%S.tf'))
 
 
 def denoise(imgs):
     print('\n\n\ndenoising images')
     out = np.empty(imgs['tiles'].shape, dtype=np.float32)
-    n = 1000
+    n = 100
     i = imgs['tiles'].shape[0]//n+1
     
     with alive_bar(i) as bar:
@@ -145,8 +151,8 @@ def main():
     train(imgs['tiles'])
     imgs['out'] = denoise(imgs)
     write_imgs(imgs)
-
-    plt.imshow(imgs['tiles'][36,:,:]); plt.figure(); plt.imshow(imgs['out'][36,:,:]); plt.show()
+    
+    plt.imshow(imgs['tiles'][18,:,:]); plt.figure(); plt.imshow(imgs['out'][18,:,:]); plt.show()
     st()
 
 if __name__ == '__main__':
